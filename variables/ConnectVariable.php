@@ -4,9 +4,9 @@ namespace Craft;
 
 class ConnectVariable {
 
-	function getPosts()
+	function getPosts($limit = 5)
 	{
-		return craft()->connect->getPosts();
+		return craft()->connect->getPosts($limit);
 	}
 
 }

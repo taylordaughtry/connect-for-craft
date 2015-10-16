@@ -8,56 +8,50 @@ use \Guzzle\Http\Client;
 
 class ConnectService extends BaseApplicationComponent
 {
-
-	public function getPosts()
+	/**
+	 * Get the most recent posts from a certain Facebook Page and wraps all
+	 * links with HTML anchor links.
+	 *
+	 * @method getPosts
+	 *
+	 * @param int $limit The number of posts to get.
+	 *
+	 * @return array Page posts with keys of 'message, created_time, id'
+	 */
+	public function getPosts($limit)
 	{
 		$appId = '526715080828830';
 		$appSecret = '65c392edf63064a6c8c820eeb8713083';
 		$baseUrl = 'https://graph.facebook.com/v2.5/';
-		$pageId = '1494584574175100';
+		$pageId = '881444838597214';
 		$accessToken = $appId . '%7C' . $appSecret;
 
+		if (craft()->cache->get('connectPosts')) {
+			return craft()->cache->get('connectPosts');
+		}
+
 		$client = new Client();
-		$response = $client->get($baseUrl . '/' . $pageId . '/feed?access_token=' . $accessToken)->send();
 
-		$items = $response->json();
+		$posts = $client
+			->get($baseUrl . '/' . $pageId . '/feed?limit=' . $limit . '&access_token=' . $accessToken)
+			->send()
+			->json()['data'];
 
-		return $items['data'];
-	}
+		$pattern = '/(http:\/\/[a-z0-9\.\/]+)/i';
 
-	/**
-	 * Use Craft's included Guzzle library to make an API request
-	 *
-	 * @param  string $url  The URL to query
-	 *
-	 * @return void
-	 */
+		$replacement = '<a href="$1" target="_blank">$1</a>';
 
-	private function _curlRequest($url = '')
-	{
-		try
-		{
-			$client  = new \Guzzle\Http\Client($url);
-			$request = $client->get($url, array(
-					'Accept' => 'application/rss+xml',
-					'Accept' => 'application/rdf+xml',
-					'Accept' => 'application/xml',
-					'Accept' => 'text/xml'
-				)
-			);
+		for($i = 0; $i < count($posts); $i++) {
+			$source = $posts[$i]['message'];
 
-			$response = $request->send();
+			$linkedMessage = preg_replace($pattern, $replacement, $source);
 
-			return $response->getBody(true);
+			$posts[$i]['message'] = $linkedMessage;
 		}
-		catch(\Exception $e)
-		{
-			FeederPlugin::log($e->getResponse(), LogLevel::Error, true);
 
-			$response = $e->getResponse();
+		// Cache in 5-minute increments
+		craft()->cache->set('connectPosts', $posts, 600);
 
-			return $response;
-		}
+		return $posts;
 	}
-
 }
