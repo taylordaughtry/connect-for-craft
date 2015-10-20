@@ -5,7 +5,7 @@ class ConnectPlugin extends BasePlugin
 {
     public function init()
     {
-        require CRAFT_PLUGINS_PATH.'/connect/vendor/autoload.php';
+        require CRAFT_PLUGINS_PATH.'connect/vendor/autoload.php';
     }
 
     public function getName()
